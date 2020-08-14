@@ -1,12 +1,12 @@
 package com.atar.demo.view
 
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.databinding.DataBindingUtil.setContentView
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.atar.demo.R
+import com.atar.demo.databinding.ActivityMainBinding
 import com.atar.demo.model.BaseItem
 import com.atar.demo.model.ListItem
 import com.atar.demo.model.Result
@@ -17,25 +17,31 @@ import com.atar.demo.viewmodel.MainViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
     private lateinit var mainViewModel: MainViewModel
     private val composite: CompositeDisposable = CompositeDisposable()
-    private lateinit var adapter: MainListAdapter
-    private var isLoading = false
-    private var currentPage = 1
-    private var isLastPage = false
+    private val adapter = MainListAdapter(this)
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = setContentView<ActivityMainBinding>(this, R.layout.activity_main).apply {
+            adapter = this@MainActivity.adapter
+        }
+        initData()
+    }
+
+    private fun initData() {
         initViewModel()
         loadFirstResponse()
     }
 
     private fun initViewModel() {
         mainViewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
+        binding.viewModel = mainViewModel
+        mainViewModel.currentPage = 1
+        mainViewModel.isLastPage = false
     }
 
     private fun loadFirstResponse() {
@@ -48,7 +54,7 @@ class MainActivity : AppCompatActivity() {
                         onDataFetchFail(result.exception)
                 }
             }
-        mainViewModel.fetchListData(getNextURL(1))
+        mainViewModel.fetchListData(getNextURL(mainViewModel.currentPage))
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(disposableOnNextObserver)
@@ -57,46 +63,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onFirstResponse(data: ArrayList<ListItem>) {
-        progressBar.visibility = View.GONE
-        recyclerView.visibility = View.VISIBLE
-        showListData(data)
+        hideProgressBarAndShowList()
+        setUpRecyclerViewAdapter(data)
+        observeLoadMoreItems()
     }
 
-    private fun showListData(data: ArrayList<ListItem>) {
-        adapter = MainListAdapter(this, data as ArrayList<BaseItem>)
-        val layoutManager = LinearLayoutManager(this)
-        recyclerView.layoutManager = layoutManager
-        recyclerView.adapter = adapter
-        addScrollListener(layoutManager)
-
-        if (currentPage <= TOTAL_PAGES)
-            adapter.addLoadingFooter()
-        else
-            isLastPage = true
+    private fun hideProgressBarAndShowList() {
+        mainViewModel.progressBarVisibility.set(false)
+        mainViewModel.listVisibility.set(true)
     }
 
-    private fun onDataFetchFail(exception: Exception?) {
-        progressBar.visibility = View.GONE
-        Toast.makeText(this, "Error while fetching: ${exception?.message}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun addScrollListener(layoutManager: LinearLayoutManager) {
-        recyclerView.addOnScrollListener(object: PaginationScrollListener(layoutManager) {
-
-            override fun loadMoreItems() {
-                isLoading = true
-                currentPage += 1
-                loadNextPage()
+    private fun observeLoadMoreItems() {
+        val disposableOnNextObserver =
+            object : DisposableOnNextObserver<Unit>() {
+                override fun onNext(result: Unit) {
+                    loadNextPage()
+                }
             }
+        mainViewModel.observeLoadMoreItems()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(disposableOnNextObserver)
 
-            override fun isLastPage(): Boolean {
-                return isLastPage
-            }
-
-            override fun isLoading(): Boolean {
-                return isLoading
-            }
-        })
+        composite.add(disposableOnNextObserver)
     }
 
     private fun loadNextPage() {
@@ -109,7 +98,7 @@ class MainActivity : AppCompatActivity() {
                         onDataFetchFail(result.exception)
                 }
             }
-        mainViewModel.fetchListData(getNextURL(currentPage))
+        mainViewModel.observeNextPageLoading()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(disposableOnNextObserver)
@@ -117,21 +106,35 @@ class MainActivity : AppCompatActivity() {
         composite.add(disposableOnNextObserver)
     }
 
+    private fun setUpRecyclerViewAdapter(data: ArrayList<ListItem>) {
+        adapter.addListItems(data)
+
+        if (mainViewModel.currentPage <= TOTAL_PAGES)
+            adapter.addLoadingFooter()
+        else
+            mainViewModel.isLastPage = true
+    }
+
+    private fun onDataFetchFail(exception: Exception?) {
+        mainViewModel.progressBarVisibility.set(false)
+        Toast.makeText(this, "Error while fetching: ${exception?.message}", Toast.LENGTH_SHORT)
+            .show()
+    }
+
     private fun onDataFetchSuccess(data: ArrayList<ListItem>) {
-        progressBar.visibility = View.GONE
-        recyclerView.visibility = View.VISIBLE
+        hideProgressBarAndShowList()
         updateList(data)
     }
 
     private fun updateList(data: ArrayList<ListItem>) {
         adapter.removeLoadingFooter()
-        isLoading = false
+        mainViewModel.isLoading = false
         adapter.addListItems(data)
 
-        if (currentPage != TOTAL_PAGES)
+        if (mainViewModel.currentPage != TOTAL_PAGES)
             adapter.addLoadingFooter()
         else
-            isLastPage = true
+            mainViewModel.isLastPage = true
     }
 
     override fun onDestroy() {

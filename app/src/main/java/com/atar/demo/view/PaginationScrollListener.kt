@@ -3,10 +3,11 @@ package com.atar.demo.view
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-abstract class PaginationScrollListener(private val layoutManager: LinearLayoutManager): RecyclerView.OnScrollListener() {
+abstract class PaginationScrollListener() : RecyclerView.OnScrollListener() {
 
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
         super.onScrolled(recyclerView, dx, dy)
+        val layoutManager = recyclerView.layoutManager as LinearLayoutManager
         val visibleItemCount: Int = layoutManager.childCount
         val totalItemCount: Int = layoutManager.itemCount
         val firstVisibleItemPosition: Int = layoutManager.findFirstVisibleItemPosition()
@@ -18,6 +19,7 @@ abstract class PaginationScrollListener(private val layoutManager: LinearLayoutM
             }
         }
     }
+
     abstract fun loadMoreItems()
 
     abstract fun isLastPage(): Boolean
