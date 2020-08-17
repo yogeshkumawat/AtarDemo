@@ -2,10 +2,11 @@ package com.atar.demo.viewmodel
 
 import androidx.databinding.ObservableBoolean
 import androidx.lifecycle.ViewModel
+import com.atar.demo.common.Constant.getNextURL
 import com.atar.demo.gateways.MainGatewayImpl
+import com.atar.demo.model.ListData
 import com.atar.demo.model.ListItem
 import com.atar.demo.model.Result
-import com.atar.demo.utils.Constant.getNextURL
 import com.atar.demo.view.PaginationScrollListener
 import io.reactivex.Observable
 import io.reactivex.subjects.PublishSubject
@@ -26,8 +27,16 @@ class MainViewModel() : ViewModel() {
 
     var isLastPage = false
 
-    fun fetchListData(url: String): Observable<Result<ArrayList<ListItem>>> {
-        return gateway.fetchData(url)
+    private val localListItems = ArrayList<ListItem>()
+
+    fun fetchListData(url: String): Observable<Result<ListData>> {
+        //return if(localListItems.size > 0)
+            //Observable.just(Result(true, ))
+        return gateway.fetchData(url).map {
+            if(it.data?.items != null)
+                localListItems.addAll(it.data.items)
+            it
+        }
     }
 
     val onScrollListener = object : PaginationScrollListener() {
@@ -51,7 +60,7 @@ class MainViewModel() : ViewModel() {
         return loadMoreItemsSubject
     }
 
-    fun observeNextPageLoading(): Observable<Result<ArrayList<ListItem>>> {
+    fun observeNextPageLoading(): Observable<Result<ListData>> {
         return fetchListData(getNextURL(currentPage))
     }
 }

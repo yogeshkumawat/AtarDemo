@@ -1,8 +1,8 @@
 package com.atar.demo.model
 
-data class ListItem(val name: String,
-               val description: String,
-               val open_issues_count: Int,
-               val license: Licence,
-               val permissions: Permission
+data class ListItem(val ID: Int,
+               val Title: String,
+               val Description: String,
+               val PageCount: Int,
+               val PublishDate: String
 ) : BaseItem(1)

@@ -1,4 +1,4 @@
-package com.atar.demo.utils
+package com.atar.demo.common
 
 import io.reactivex.observers.DisposableObserver
 

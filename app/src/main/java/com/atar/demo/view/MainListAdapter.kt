@@ -53,7 +53,6 @@ class MainListAdapter(
                 holder.binding.executePendingBindings()
             }
         }
-
     }
 
     fun addLoadingFooter() {

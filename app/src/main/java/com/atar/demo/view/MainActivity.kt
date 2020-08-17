@@ -7,12 +7,10 @@ import androidx.databinding.DataBindingUtil.setContentView
 import androidx.lifecycle.ViewModelProviders
 import com.atar.demo.R
 import com.atar.demo.databinding.ActivityMainBinding
-import com.atar.demo.model.BaseItem
-import com.atar.demo.model.ListItem
 import com.atar.demo.model.Result
-import com.atar.demo.utils.Constant.TOTAL_PAGES
-import com.atar.demo.utils.Constant.getNextURL
-import com.atar.demo.utils.DisposableOnNextObserver
+import com.atar.demo.common.Constant.getNextURL
+import com.atar.demo.common.DisposableOnNextObserver
+import com.atar.demo.model.ListData
 import com.atar.demo.viewmodel.MainViewModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
@@ -40,14 +38,14 @@ class MainActivity : AppCompatActivity() {
     private fun initViewModel() {
         mainViewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
         binding.viewModel = mainViewModel
-        mainViewModel.currentPage = 1
-        mainViewModel.isLastPage = false
+        //mainViewModel.currentPage = 1
+        //mainViewModel.isLastPage = false
     }
 
     private fun loadFirstResponse() {
         val disposableOnNextObserver =
-            object : DisposableOnNextObserver<Result<ArrayList<ListItem>>>() {
-                override fun onNext(result: Result<ArrayList<ListItem>>) {
+            object : DisposableOnNextObserver<Result<ListData>>() {
+                override fun onNext(result: Result<ListData>) {
                     if (result.success)
                         onFirstResponse(result.data!!)
                     else
@@ -62,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         composite.add(disposableOnNextObserver)
     }
 
-    private fun onFirstResponse(data: ArrayList<ListItem>) {
+    private fun onFirstResponse(data: ListData) {
         hideProgressBarAndShowList()
         setUpRecyclerViewAdapter(data)
         observeLoadMoreItems()
@@ -90,8 +88,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadNextPage() {
         val disposableOnNextObserver =
-            object : DisposableOnNextObserver<Result<ArrayList<ListItem>>>() {
-                override fun onNext(result: Result<ArrayList<ListItem>>) {
+            object : DisposableOnNextObserver<Result<ListData>>() {
+                override fun onNext(result: Result<ListData>) {
                     if (result.success)
                         onDataFetchSuccess(result.data!!)
                     else
@@ -106,10 +104,10 @@ class MainActivity : AppCompatActivity() {
         composite.add(disposableOnNextObserver)
     }
 
-    private fun setUpRecyclerViewAdapter(data: ArrayList<ListItem>) {
-        adapter.addListItems(data)
+    private fun setUpRecyclerViewAdapter(data: ListData) {
+        adapter.addListItems(data.items)
 
-        if (mainViewModel.currentPage <= TOTAL_PAGES)
+        if (mainViewModel.currentPage <= data.pages.tp)
             adapter.addLoadingFooter()
         else
             mainViewModel.isLastPage = true
@@ -121,17 +119,17 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun onDataFetchSuccess(data: ArrayList<ListItem>) {
+    private fun onDataFetchSuccess(data: ListData) {
         hideProgressBarAndShowList()
         updateList(data)
     }
 
-    private fun updateList(data: ArrayList<ListItem>) {
+    private fun updateList(data: ListData) {
         adapter.removeLoadingFooter()
         mainViewModel.isLoading = false
-        adapter.addListItems(data)
+        adapter.addListItems(data.items)
 
-        if (mainViewModel.currentPage != TOTAL_PAGES)
+        if (mainViewModel.currentPage != data.pages.tp)
             adapter.addLoadingFooter()
         else
             mainViewModel.isLastPage = true
