@@ -16,7 +16,6 @@ class NetworkGatewayImpl : NetworkGateway {
         return Observable.create {
             val queue: RequestQueue =
                 Volley.newRequestQueue(MyApplication.instance.applicationContext)
-            queue.cache.clear()
             val request = FeedRequest(url,
                 null,
                 Response.Listener { result ->
@@ -26,7 +25,7 @@ class NetworkGatewayImpl : NetworkGateway {
                     onFeedError(it, error)
                 }
             )
-            request.setShouldCache(false)
+            request.setShouldCache(true)
             queue.add<ListData>(request)
         }
     }
