@@ -1,3 +1,3 @@
 package com.atar.demo.model
 
-data class ListData(val pages: Pages, val items: ArrayList<ListItem>)
+data class ListData(var pages: Pages, var items: ArrayList<ListItem>)

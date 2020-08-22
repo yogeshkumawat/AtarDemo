@@ -38,8 +38,6 @@ class MainActivity : AppCompatActivity() {
     private fun initViewModel() {
         mainViewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
         binding.viewModel = mainViewModel
-        //mainViewModel.currentPage = 1
-        //mainViewModel.isLastPage = false
     }
 
     private fun loadFirstResponse() {
@@ -52,7 +50,7 @@ class MainActivity : AppCompatActivity() {
                         onDataFetchFail(result.exception)
                 }
             }
-        mainViewModel.fetchListData(getNextURL(mainViewModel.currentPage))
+        mainViewModel.fetchFirstListData(getNextURL(mainViewModel.currentPage))
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(disposableOnNextObserver)
@@ -107,7 +105,7 @@ class MainActivity : AppCompatActivity() {
     private fun setUpRecyclerViewAdapter(data: ListData) {
         adapter.addListItems(data.items)
 
-        if (mainViewModel.currentPage <= data.pages.tp)
+        if (mainViewModel.currentPage < data.pages.tp)
             adapter.addLoadingFooter()
         else
             mainViewModel.isLastPage = true

@@ -6,6 +6,7 @@ import com.atar.demo.common.Constant.getNextURL
 import com.atar.demo.gateways.MainGatewayImpl
 import com.atar.demo.model.ListData
 import com.atar.demo.model.ListItem
+import com.atar.demo.model.Pages
 import com.atar.demo.model.Result
 import com.atar.demo.view.PaginationScrollListener
 import io.reactivex.Observable
@@ -27,15 +28,28 @@ class MainViewModel() : ViewModel() {
 
     var isLastPage = false
 
-    private val localListItems = ArrayList<ListItem>()
+    private var localListData: ListData? = null
 
-    fun fetchListData(url: String): Observable<Result<ListData>> {
-        //return if(localListItems.size > 0)
-            //Observable.just(Result(true, ))
+    private lateinit var localPage: Pages
+
+    private fun fetchListData(url: String): Observable<Result<ListData>> {
         return gateway.fetchData(url).map {
-            if(it.data?.items != null)
-                localListItems.addAll(it.data.items)
+            localListData?.items?.addAll(it.data?.items!!)
+            localListData?.pages = it.data?.pages!!
             it
+        }
+    }
+
+    fun fetchFirstListData(url: String): Observable<Result<ListData>> {
+        return if(localListData?.items?.size?:0 > 0)
+            Observable.just(Result(true, localListData, null, 0))
+        else {
+            gateway.fetchData(url).map {
+                if(localListData == null) {
+                    localListData = it.data
+                }
+                it
+            }
         }
     }
 
